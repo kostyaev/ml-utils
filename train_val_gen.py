@@ -25,6 +25,10 @@ if __name__ == '__main__':
         '-o', '--output', type=str,
         help="Output path",
         required=True)
+    parser.add_argument(
+        '-r', '--ralative', type=bool,
+        help="Output path",
+        default=False)
 
     args = parser.parse_args()
 
@@ -33,8 +37,8 @@ if __name__ == '__main__':
     split = float(args.split)
     output = args.output
 
-    positive_examples = [{'image': join(pos_dir, f), 'label': 1} for f in listdir(pos_dir)]
-    negative_examples = [{'image': join(neg_dir, f), 'label': 0} for f in listdir(neg_dir)]
+    positive_examples = [{'image': join(pos_dir, f), 'label': 1} for f in listdir(pos_dir) if f.endswith(".jpg")]
+    negative_examples = [{'image': join(neg_dir, f), 'label': 0} for f in listdir(neg_dir) if f.endswith(".jpg")]
 
     all_examples = positive_examples + negative_examples
     random.shuffle(all_examples)
