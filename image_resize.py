@@ -64,5 +64,5 @@ if __name__ == '__main__':
             size = width * k, height * k
             img.thumbnail(size, Image.ANTIALIAS)
             img.save(out_dir + f, "JPEG")
-        except IOError:
-            print "cannot resize image"
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
