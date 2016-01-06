@@ -4,7 +4,7 @@ from os import walk, path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Resize all images in direcory'
+        description='Split image for patches'
     )
     parser.add_argument(
         '--input',
