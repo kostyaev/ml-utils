@@ -4,6 +4,7 @@ from os.path import join
 import argparse
 import multiprocessing
 import functools
+import math
 
 
 def resize(path, maxPx, minPx):
@@ -20,8 +21,8 @@ def resize(path, maxPx, minPx):
             largest *= k
         if smallest < minPx:
             k *= minPx / float(smallest)
-        size = width * k, height * k
-        img.thumbnail(size, Image.ANTIALIAS)
+        size = int(math.ceil(width * k)), int(math.ceil(height * k))
+        img.resize(size, Image.ANTIALIAS)
         return img
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
