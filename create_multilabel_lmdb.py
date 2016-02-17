@@ -5,6 +5,7 @@ import caffe
 import sys
 import math
 import argparse
+import random
 
 def resize(img, maxPx, minPx):
     try:
@@ -117,11 +118,23 @@ if __name__ == '__main__':
         help='Min size of smaller dimension after resize. Has higher priority than --max',
         required=True
     )
+    parser.add_argument(
+        '--shuffle',
+        type=bool,
+        help='Enable shuffling of the data',
+        default=False
+    )
 
     args = parser.parse_args()
 
     images = np.loadtxt(args.images, str, delimiter='\t')
     labels = np.load(args.labels)
+
+    if args.shuffle:
+        print "Shuffling the data"
+        data = zip(images, labels)
+        random.shuffle(data)
+        images, labels = zip(*data)
 
     print "Creating test set"
     fillLmdb(
