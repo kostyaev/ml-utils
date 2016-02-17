@@ -82,7 +82,7 @@ if __name__ == '__main__':
         required=True
     )
     parser.add_argument(
-        '-labels',
+        '--labels',
         type=str,
         help='Labels npy file',
         required=True
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         required=True
     )
     parser.add_argument(
-        '-labelsOut',
+        '--labelsOut',
         type=str,
         help='Labels lmdb',
         required=True
@@ -121,12 +121,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     images = np.loadtxt(args.images, str, delimiter='\t')
-    labels = np.load(args.lables)
+    labels = np.load(args.labels)
 
     print "Creating test set"
     fillLmdb(
-        images_file=args.imagesOut,
-        labels_file=args.lablesOut,
+        images_file=args.imagesOut + "_test",
+        labels_file=args.labelsOut + "_test",
         images=images[:args.n],
         labels=labels[:args.n],
         minPx=args.minPx,
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     print "Creating training set"
     fillLmdb(
         images_file=args.imagesOut,
-        labels_file=args.lablesOut,
+        labels_file=args.labelsOut,
         images=images[args.n:],
         labels=labels[args.n:],
         minPx=args.minPx,
