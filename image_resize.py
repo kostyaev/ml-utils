@@ -1,6 +1,8 @@
 from PIL import Image
 import argparse
 from os import walk
+import math
+import sys
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -41,7 +43,8 @@ if __name__ == '__main__':
         files.extend(filenames)
         break
 
-    for f in files:
+    total = len(files)
+    for idx, f in enumerate(files):
         try:
             img = Image.open(in_dir + f)
             width = img.size[0]
@@ -61,8 +64,12 @@ if __name__ == '__main__':
             if smallest < args.min:
                 k *= args.min / float(smallest)
 
-            size = width * k, height * k
-            img.thumbnail(size, Image.ANTIALIAS)
+            size = int(math.ceil(width * k)), int(math.ceil(height * k))
+            img = img.resize(size, Image.ANTIALIAS)
             img.save(out_dir + f, "JPEG")
         except IOError as e:
             print "I/O error({0}): {1}".format(e.errno, e.strerror)
+        if idx % 1000 == 0:
+            string_ = str(idx+1) + ' / ' + str(total)
+            sys.stdout.write("\r%s" % string_)
+            sys.stdout.flush()
