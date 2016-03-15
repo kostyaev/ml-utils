@@ -26,8 +26,19 @@ def resize(img, maxPx, minPx):
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
+def centeredCrop(img, new_height, new_width):
+    width = np.size(img,1)
+    height = np.size(img,0)
+    left = int(np.ceil((width - new_width)/2.))
+    top = int(np.ceil((height - new_height)/2.))
+    right = int(np.ceil((width + new_width)/2.))
+    bottom = int(np.ceil((height + new_height)/2.))
+    cImg = img[top:bottom, left:right]
+    return cImg
+
 def fillLmdb(images_file, labels_file, images, labels, maxPx, minPx):
-    means = np.zeros(3)
+    mean_bgr = np.array([0,0,0])
+    mean_bgr = mean_bgr[:, np.newaxis, np.newaxis]
     cnt = 0
     images_db = lmdb.open(images_file, map_size=int(1e12), map_async=True, writemap=True)
     labels_db = lmdb.open(labels_file, map_size=int(1e12))
@@ -41,11 +52,12 @@ def fillLmdb(images_file, labels_file, images, labels, maxPx, minPx):
             #save image
             im = Image.open(image)
             im = resize(im, maxPx=maxPx, minPx=minPx)
-            im = np.array(im) # or load whatever ndarray you need
-            mean = im.mean(axis=0).mean(axis=0)
-            means += mean
+            im = centeredCrop(np.array(im), maxPx, maxPx) # or load whatever ndarray you need
+            # mean = im.mean(axis=0).mean(axis=0)
+            # means += mean
             im = im[:,:,::-1]
             im = im.transpose((2,0,1))
+            mean_bgr += np.float32(im)
             im_dat = caffe.io.array_to_datum(im)
             images_txn.put('{:0>10d}'.format(in_idx), im_dat.SerializeToString())
 
@@ -69,8 +81,11 @@ def fillLmdb(images_file, labels_file, images, labels, maxPx, minPx):
     images_db.close()
     labels_db.close()
 
+    mean_bgr /= cnt
+    np.save(mean_bgr, images_file + "_mean_file.npy")
+
     print "\nFilling lmdb completed"
-    print "Image mean values for RBG: {0}".format(means / cnt)
+    print "Image mean values for BGR: {0}".format(mean_bgr.mean(axis=1).mean(axis=1) / cnt)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -129,6 +144,9 @@ if __name__ == '__main__':
 
     images = np.loadtxt(args.images, str, delimiter='\t')
     labels = np.load(args.labels)
+
+    print "Size of images {}".format(images.shape)
+    print "Size of labels {}".format(labels.shape)
 
     if args.shuffle:
         print "Shuffling the data"
