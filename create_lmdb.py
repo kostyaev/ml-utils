@@ -71,7 +71,7 @@ def prepare_image(path_label, max_side, min_side):
         return img, datum.SerializeToString()
     except Exception as e:
         print e
-        print "Skipped image {}".format(f)
+        print "Skipped image {}".format(img_path)
         return None, None
 
 
