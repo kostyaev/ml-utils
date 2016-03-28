@@ -66,12 +66,12 @@ def prepare_image(path_label, max_side, min_side):
     try:
         img_path, label = path_label[0], path_label[1]
         img = open_image(img_path, max_side=max_side, min_side=min_side)
-        datum = caffe.io.array_to_datum(img.astype(float))
+        datum = caffe.io.array_to_datum(img.astype(np.uint8))
         datum.label = label
         return img, datum.SerializeToString()
     except Exception as e:
         print e
-        print "Skipped image {}".format(img_path)
+        print "Skipped image {}".format(path_label[0])
         return None, None
 
 
@@ -87,7 +87,7 @@ def create_lmdb(data, max_side, min_side, out_dir):
     if not os.path.exists(lmdb_dir):
         os.makedirs(lmdb_dir)
 
-    db = lmdb.open(out_dir, map_size=int(1e12), map_async=True, writemap=True)
+    db = lmdb.open(lmdb_dir, map_size=int(1e12), map_async=True, writemap=True)
     txn = db.begin(write=True)
     for batch in chunks(data, 50):
         for img, datum_str in prepare_batch(batch):
@@ -105,8 +105,8 @@ def create_lmdb(data, max_side, min_side, out_dir):
     db.close()
     print "\nFilling lmdb completed"
     mean_bgr /= cnt
-    np.save(mean_bgr, join(out_dir, 'mean.npy'))
-    print "Image mean values for BGR: {0}".format(mean_bgr.mean(axis=1).mean(axis=1) / cnt)
+    np.save(join(out_dir, 'mean.npy'), mean_bgr)
+    print "Image mean values for BGR: {0}".format(mean_bgr.mean(axis=1).mean(axis=1))
 
 
 if __name__ == '__main__':
