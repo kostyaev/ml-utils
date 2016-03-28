@@ -8,7 +8,9 @@ import sys
 import math
 import argparse
 import random
-
+import time
+import multiprocessing
+import functools
 
 def resize(img, max_side, min_side):
     try:
@@ -56,35 +58,48 @@ def open_image(f, max_side, min_side):
     return im
 
 
+def chunks(l, n):
+    return [l[i:i+n] for i in xrange(0, len(l), n)]
+
+
+def prepare_image(path_label, max_side, min_side):
+    try:
+        img_path, label = path_label[0], path_label[1]
+        img = open_image(img_path, max_side=max_side, min_side=min_side)
+        datum = caffe.io.array_to_datum(img.astype(float))
+        datum.label = label
+        return img, datum.SerializeToString()
+    except Exception as e:
+        print e
+        print "Skipped image {}".format(f)
+        return None, None
+
+
+def prepare_batch(batch):
+    return pool.map(prepare_image_func, batch)
+
+
 def create_lmdb(data, max_side, min_side, out_dir):
     mean_bgr = np.zeros((3, min_side, min_side)).astype(np.float32, copy=False)
     print mean_bgr.shape
     cnt = 0
     lmdb_dir = join(out_dir, 'lmdb')
-
     if not os.path.exists(lmdb_dir):
         os.makedirs(lmdb_dir)
 
     db = lmdb.open(out_dir, map_size=int(1e12), map_async=True, writemap=True)
-    with db.begin(write=True) as txn:
-        for img_path, label in data:
-            try:
-                img = open_image(img_path, max_side=max_side, min_side=min_side)
+    txn = db.begin(write=True)
+    for batch in chunks(data, 50):
+        for img, datum_str in prepare_batch(batch):
+            if img is not None:
                 mean_bgr += img
-                datum = caffe.io.array_to_datum(img.astype(float))
-                datum.label = label
                 str_id = '{:0>10d}'.format(cnt)
-                txn.put(str_id.encode('ascii'), datum.SerializeToString())
+                txn.put(str_id, datum_str)
                 cnt += 1
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception as e:
-                print e
-                print "Skipped image and label with id {0}".format(cnt)
-            if cnt % 5 == 0:
-                string_ = str(cnt + 1) + ' / ' + str(len(data))
-                sys.stdout.write("\r%s" % string_)
-                sys.stdout.flush()
+
+        string_ = str(cnt + 1) + ' / ' + str(len(data))
+        sys.stdout.write("\r%s" % string_)
+        sys.stdout.flush()
 
     txn.commit()
     db.close()
@@ -130,6 +145,9 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+    prepare_image_func = functools.partial(prepare_image, max_side=args.max_side, min_side=args.min_side)
+
+    pool = multiprocessing.Pool(processes=8)
     data = []
     for row in open(args.data):
         splits = row.rstrip('\n').split(' ')
@@ -141,7 +159,9 @@ if __name__ == '__main__':
         print "Shuffling the data"
         random.shuffle(data)
 
+
     print "Creating lmdb"
+
     create_lmdb(
             data=data,
             max_side=args.max_side,
