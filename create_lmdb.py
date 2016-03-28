@@ -46,7 +46,7 @@ def centered_crop(img, new_height, new_width):
 def open_image(f, max_side, min_side):
     im = Image.open(f)
     im = resize(im, max_side=max_side, min_side=min_side)
-    im = np.array(im).astype(np.float32, copy=False)
+    im = np.array(im)
     if im.ndim == 2:
         im = im[:, :, np.newaxis]
         im = np.tile(im, (1, 1, 3))
@@ -92,7 +92,7 @@ def create_lmdb(data, max_side, min_side, out_dir):
     for batch in chunks(data, 50):
         for img, datum_str in prepare_batch(batch):
             if img is not None:
-                mean_bgr += img
+                mean_bgr += img.astype(np.float32)
                 str_id = '{:0>10d}'.format(cnt)
                 txn.put(str_id, datum_str)
                 cnt += 1
