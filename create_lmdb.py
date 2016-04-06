@@ -8,7 +8,6 @@ import sys
 import math
 import argparse
 import random
-import time
 import multiprocessing
 import functools
 
@@ -78,6 +77,18 @@ def prepare_image(path_label, max_side, min_side):
 def prepare_batch(batch):
     return pool.map(prepare_image_func, batch)
 
+def array_to_blobproto(arr, diff=None):
+    """Converts a N-dimensional array to blob proto. If diff is given, also
+    convert the diff. You need to make sure that arr and diff have the same
+    shape, and this function does not do sanity check.
+    """
+    blob = caffe.proto.caffe_pb2.BlobProto()
+    blob.shape.dim.extend(arr.shape)
+    blob.data.extend(arr.astype(float).flat)
+    if diff is not None:
+        blob.diff.extend(diff.astype(float).flat)
+    return blob
+
 
 def create_lmdb(data, max_side, min_side, out_dir):
     mean_bgr = np.zeros((3, min_side, min_side)).astype(np.float32, copy=False)
@@ -103,10 +114,17 @@ def create_lmdb(data, max_side, min_side, out_dir):
 
     txn.commit()
     db.close()
+
     print "\nFilling lmdb completed"
+
     mean_bgr /= cnt
+    mean_bgr = mean_bgr[np.newaxis, :, :, :]
+    blob = array_to_blobproto(mean_bgr)
+    binaryproto_file = open(join(out_dir, 'mean.binaryproto'), 'wb' )
+    binaryproto_file.write(blob.SerializeToString())
+    binaryproto_file.close()
     np.save(join(out_dir, 'mean.npy'), mean_bgr)
-    print "Image mean values for BGR: {0}".format(mean_bgr.mean(axis=1).mean(axis=1))
+    print "Image mean values for BGR: {0}".format(mean_bgr[0].mean(axis=1).mean(axis=1))
 
 
 if __name__ == '__main__':
