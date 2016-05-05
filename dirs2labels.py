@@ -3,6 +3,7 @@ import os
 import argparse
 import operator
 import pickle
+import numpy as np
 
 def save_obj(obj, name ):
     with open(name + '.pkl', 'wb') as f:
@@ -10,7 +11,7 @@ def save_obj(obj, name ):
 
 
 def encode(labels, label_to_id):
-    return ','.join([str(label_to_id[l]) for l in labels.split('/')])
+    return [label_to_id[l] for l in labels.split('/')]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -56,7 +57,11 @@ if __name__ == '__main__':
 
     encoded_labels_files = []
     for k,v in labels_files:
-        encoded_labels_files.append((encode(k, all_labels), v))
+        ids = encode(k, all_labels)
+        one_hot = np.zeros(len(all_labels))
+        one_hot[ids] = 1
+        one_hot = one_hot.tolist()
+        encoded_labels_files.append((one_hot, v))
 
     save_obj(encoded_labels_files, args.dict)
 
