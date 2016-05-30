@@ -5,15 +5,26 @@ import multiprocessing
 from PIL import Image
 import sys
 
-def remove_corrupted(img):
+def remove_corrupted(path):
     try:
-        Image.open(img).load()
+        img = Image.open(path)
+        img.load()
+        if img.format != 'JPEG':
+            if img.mode == 'RGBA':
+                print "converting RGBA {} to JPEG".format(path)
+                png = img.convert('RGBA')
+                background = Image.new('RGBA', png.size, (255,255,255))
+                alpha_composite = Image.alpha_composite(background, png)
+                alpha_composite.save(path, 'JPEG', quality=100)
+            else:
+                print "converting {} {} to JPEG".format(img.mode, path)
+                img.convert('RGB').save(path)
         return True
     except (KeyboardInterrupt, SystemExit):
         raise
     except:
-        print "removing broken img {}".format(img)
-        os.remove(img)
+        print "removing broken img {}".format(path)
+        os.remove(path)
         return False
 
 if __name__ == '__main__':
