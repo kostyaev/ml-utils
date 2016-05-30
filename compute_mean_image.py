@@ -67,6 +67,9 @@ def prepare_image(path_label, min_side):
 def prepare_all(data):
     return pool.map(prepare_image_func, data)
 
+def chunks(l, n):
+    return [l[i:i+n] for i in xrange(0, len(l), n)]
+
 def array_to_blobproto(arr, diff=None):
     """Converts a N-dimensional array to blob proto. If diff is given, also
     convert the diff. You need to make sure that arr and diff have the same
@@ -84,15 +87,23 @@ def compute_mean(data, min_side, output):
     mean_bgr = np.zeros((3, min_side, min_side)).astype(np.float32, copy=False)
     cnt = 0
     print "Computing mean image..."
-    for img in prepare_all(data):
-        if img is not None:
-            mean_bgr += img.astype(np.float32)
-            cnt += 1
-            string_ = str(cnt + 1) + ' / ' + str(len(data))
-            sys.stdout.write("\r%s" % string_)
-            sys.stdout.flush()
+    batch_cnt = 0
+    for batch in chunks(data, 100):
+        mean_bgr_batch = np.zeros((3, min_side, min_side)).astype(np.float32, copy=False)
+        i = 0
+        batch_cnt += 1
+        for img in prepare_all(batch):
+            if img is not None:
+                i += 1
+                mean_bgr_batch += img.astype(np.float32)
+                cnt += 1
+                if cnt % 50 == 0:
+                    string_ = str(cnt + 1) + ' / ' + str(len(data))
+                    sys.stdout.write("\r%s" % string_)
+                    sys.stdout.flush()
+        mean_bgr += (mean_bgr_batch / i)
 
-    mean_bgr /= cnt
+    mean_bgr /= batch_cnt
     mean_bgr = mean_bgr[np.newaxis, :, :, :]
     blob = array_to_blobproto(mean_bgr)
     binaryproto_file = open(output, 'wb')
