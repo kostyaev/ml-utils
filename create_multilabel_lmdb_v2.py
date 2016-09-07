@@ -47,7 +47,7 @@ def resize(img, max_side, min_side):
         if smallest < min_side:
             k *= min_side / float(smallest)
         size = int(math.ceil(width * k)), int(math.ceil(height * k))
-        img = img.resize(size, Image.ANTIALIAS)
+        img = img.resize(size, Image.BILINEAR)
         return img
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
